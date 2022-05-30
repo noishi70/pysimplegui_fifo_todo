@@ -25,6 +25,7 @@ col_tasks = [
         sg.Button("Edit", key="-EDIT_TASK-", button_color=("black", "PaleTurquoise1")),
         sg.Button("Delete", key="-DEL_TASK-", button_color=("black", "DarkSalmon")),
     ],
+    [sg.Text("Task List", font=("Times New Roman", 15))],
     [sg.Listbox(values=tasks, size=(30, 10), key="-TASKS-")],
 ]
 
@@ -33,6 +34,7 @@ col_done = [
         sg.Button("REDO", key="-REDO_DONE-", button_color=("black", "PaleTurquoise1")),
         sg.Button("Delete", key="-DEL_DONE-", button_color=("black", "DarkSalmon")),
     ],
+    [sg.Text("Done List", font=("Times New Roman", 15))],
     [sg.Listbox(values=done, size=(30, 10), key="-DONE-")],
 ]
 
