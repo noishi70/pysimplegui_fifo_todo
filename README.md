@@ -1,0 +1,2 @@
+# pysimplegui_fifo_todo
+PySimpleGUIで作成したFIFO型のTODOリスト
