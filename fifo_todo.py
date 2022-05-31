@@ -2,8 +2,11 @@ from copyreg import pickle
 from genericpath import exists
 import PySimpleGUI as sg
 import pickle as pk
+
+from matplotlib.pyplot import flag
 import load_files
 import os
+import time
 
 # フォントとテーマの設定
 sg.set_options(font=("Times New Roman", 15))
@@ -18,6 +21,7 @@ TASK_PATH = FILE_PATH + "tasks.pkl"
 DONE_PATH = FILE_PATH + "done.pkl"
 tasks, done = load_files.load_files(FILE_PATH, TASK_PATH, DONE_PATH)
 
+timer = 3600
 # column作成
 col_tasks = [
     [
@@ -35,6 +39,7 @@ col_doing = [
         sg.InputText("", key="-DOING_INPUT-", size=(30, 10)),
         sg.Button("DONE", key="-DONE_TASK-", button_color=("black", "PaleTurquoise1")),
     ],
+    [sg.Text(timer,key="-TIMER-", justification="c",size=(20),font=("Times New Roman", 20))],
 ]
 
 col_done = [
@@ -57,7 +62,7 @@ layout = [
     ],
     [
         sg.Column(col_tasks),
-        sg.Column(col_doing, pad=((0, 0), (0, 160))),
+        sg.Column(col_doing, pad=((0, 0), (0, 120))),
         sg.Column(col_done),
     ],
 ]
@@ -65,18 +70,26 @@ layout = [
 # window呼び出し
 window = sg.Window("FIFO_TODO", layout, resizable=True)
 
-index=None
-while True:  # Event Loop
-    event, values = window.Read()  # Event -> key, values -> item
+index = None
+flag_doing=False
 
+while True:  # Event Loop
+    print(flag_doing)
+    event, values = window.Read(timeout=1000,timeout_key="-TIMEOUT-")  # Event -> key, values -> item
+    if event =="-TIMEOUT-":
+        if flag_doing==True:
+            timer-=1
+            window.find_element("-TIMER-").Update(value=timer)
+        else:
+            pass
     if event == "-ADD-":  # taskを追加したとき
         if values["-TASK_INPUT-"] == "":  # 空の場合は追加しない
             sg.popup_ok("Input Your Task")
         else:
             if values["-TASK_INPUT-"] not in tasks:  # 重複するタスクは登録しない
                 if index != None:
-                    tasks.insert(index,values["-TASK_INPUT-"])
-                    index=None
+                    tasks.insert(index, values["-TASK_INPUT-"])
+                    index = None
                 else:
                     tasks.append(values["-TASK_INPUT-"])
                 window.find_element("-TASKS-").Update(values=tasks)
@@ -93,7 +106,10 @@ while True:  # Event Loop
                 if tasks.index(values["-TASKS-"][0]) == 0:
                     tasks.remove(values["-TASKS-"][0])
                     window.find_element("-TASKS-").Update(values=tasks)
-                    window.find_element("-DOING_INPUT-").Update(value=values["-TASKS-"][0])
+                    window.find_element("-DOING_INPUT-").Update(
+                        value=values["-TASKS-"][0]
+                    )
+                    flag_doing=True
                 else:
                     sg.popup_ok("Select the first task")
             else:
@@ -103,10 +119,12 @@ while True:  # Event Loop
         if values["-DOING_INPUT-"] == "":  # 空の場合は追加しない
             sg.popup_ok("Set Your Task")
         else:
-            print(values["-DOING_INPUT-"])
             done.append(values["-DOING_INPUT-"])
             window.find_element("-DONE-").Update(values=done)
             window.find_element("-DOING_INPUT-").Update(value="")
+            flag_doing=False
+            timer=3600
+            window.find_element("-TIMER-").Update(value=timer)
 
     elif event == "-DEL_TASK-":  # taskをdelしたとき
         if values["-TASKS-"] == []:  # 空の売位は追加しない
@@ -120,7 +138,7 @@ while True:  # Event Loop
             sg.popup_ok("Not Selected")
         else:
             edit_val = values["-TASKS-"][0]  # inputウインドウに値を表示してボタンをsaveに変更
-            index=tasks.index(edit_val)
+            index = tasks.index(edit_val)
             tasks.remove(values["-TASKS-"][0])
             window.find_element("-TASKS-").Update(values=tasks)
             window.find_element("-TASK_INPUT-").Update(value=edit_val)
@@ -134,9 +152,9 @@ while True:  # Event Loop
             window.find_element("-DONE-").Update(values=done)
 
     elif event == "-CLEAR_DONE-":  # doneをdelしたとき
-        value_yes_or_no=sg.popup_yes_no("Clear Done Tasks")
-        if value_yes_or_no=="Yes":
-            done=[]
+        value_yes_or_no = sg.popup_yes_no("Clear Done Tasks")
+        if value_yes_or_no == "Yes":
+            done = []
             window.find_element("-DONE-").Update(values=done)
         else:
             pass

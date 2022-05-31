@@ -15,5 +15,6 @@ TODO リストの順番をどうしても守れない自分の為の FIFO 型 TO
 ![image](https://user-images.githubusercontent.com/74105563/171036831-f738a3b4-2a2a-462b-9e29-ed16c5d0aa28.png)
 
 ## 改善
+
 - 実行中のタスクを強調表示する機能の追加
 - デザインの改善
