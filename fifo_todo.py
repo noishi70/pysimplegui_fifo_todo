@@ -1,12 +1,15 @@
-from copyreg import pickle
-from genericpath import exists
+from multiprocessing.spawn import import_main_path
 import PySimpleGUI as sg
 import pickle as pk
-
-from matplotlib.pyplot import flag
+import datetime
+import requests
 import load_files
 import os
-import time
+from copyreg import pickle
+from genericpath import exists
+from matplotlib.pyplot import flag
+from send_line import send_line_notify
+
 
 # フォントとテーマの設定
 sg.set_options(font=("Times New Roman", 15))
@@ -19,9 +22,17 @@ os.chdir(DIR_PATH)
 FILE_PATH = "./files/"
 TASK_PATH = FILE_PATH + "tasks.pkl"
 DONE_PATH = FILE_PATH + "done.pkl"
+TOKEN_PATH = FILE_PATH + "linetoken.txt"
 tasks, done = load_files.load_files(FILE_PATH, TASK_PATH, DONE_PATH)
 
+if not os.path.exists(TOKEN_PATH):
+    sg.popup_error("./file/linetoken.txt doesn't exist")
+else:
+    with open(TOKEN_PATH, mode="r") as f:
+        token = f.read()
+
 timer = 3600
+
 # column作成
 col_tasks = [
     [
@@ -39,7 +50,15 @@ col_doing = [
         sg.InputText("", key="-DOING_INPUT-", size=(30, 10)),
         sg.Button("DONE", key="-DONE_TASK-", button_color=("black", "PaleTurquoise1")),
     ],
-    [sg.Text(timer,key="-TIMER-", justification="c",size=(20),font=("Times New Roman", 20))],
+    [
+        sg.Text(
+            datetime.timedelta(seconds=timer),
+            key="-TIMER-",
+            justification="c",
+            size=(20),
+            font=("Times New Roman", 20),
+        )
+    ],
 ]
 
 col_done = [
@@ -71,15 +90,21 @@ layout = [
 window = sg.Window("FIFO_TODO", layout, resizable=True)
 
 index = None
-flag_doing=False
+flag_doing = False
 
 while True:  # Event Loop
-    print(flag_doing)
-    event, values = window.Read(timeout=1000,timeout_key="-TIMEOUT-")  # Event -> key, values -> item
-    if event =="-TIMEOUT-":
-        if flag_doing==True:
-            timer-=1
-            window.find_element("-TIMER-").Update(value=timer)
+    event, values = window.Read(
+        timeout=1000, timeout_key="-TIMEOUT-"
+    )  # Event -> key, values -> item
+    if event == "-TIMEOUT-":
+        if flag_doing == True:
+            timer -= 1
+            window.find_element("-TIMER-").Update(
+                value=datetime.timedelta(seconds=timer)
+            )
+            if timer == 0:  # timerが終わったらLINEで通知
+                send_line_notify(token)
+                timer = 3600
         else:
             pass
     if event == "-ADD-":  # taskを追加したとき
@@ -109,7 +134,7 @@ while True:  # Event Loop
                     window.find_element("-DOING_INPUT-").Update(
                         value=values["-TASKS-"][0]
                     )
-                    flag_doing=True
+                    flag_doing = True
                 else:
                     sg.popup_ok("Select the first task")
             else:
@@ -122,9 +147,11 @@ while True:  # Event Loop
             done.append(values["-DOING_INPUT-"])
             window.find_element("-DONE-").Update(values=done)
             window.find_element("-DOING_INPUT-").Update(value="")
-            flag_doing=False
-            timer=3600
-            window.find_element("-TIMER-").Update(value=timer)
+            flag_doing = False
+            timer = 3600
+            window.find_element("-TIMER-").Update(
+                value=datetime.timedelta(seconds=timer)
+            )
 
     elif event == "-DEL_TASK-":  # taskをdelしたとき
         if values["-TASKS-"] == []:  # 空の売位は追加しない
