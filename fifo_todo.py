@@ -21,7 +21,7 @@ tasks, done = load_files.load_files(FILE_PATH, TASK_PATH, DONE_PATH)
 # column作成
 col_tasks = [
     [
-        sg.Button("DONE", key="-DONE_TASK-", button_color=("black", "PaleTurquoise1")),
+        sg.Button("SET", key="-SET_TASK-", button_color=("black", "PaleTurquoise1")),
         sg.Button("Edit", key="-EDIT_TASK-", button_color=("black", "PaleTurquoise1")),
         sg.Button("Delete", key="-DEL_TASK-", button_color=("black", "DarkSalmon")),
     ],
@@ -29,10 +29,19 @@ col_tasks = [
     [sg.Listbox(values=tasks, size=(30, 10), key="-TASKS-")],
 ]
 
+col_doing = [
+    [sg.Text("The Task in Progress", font=("Times New Roman", 15))],
+    [
+        sg.InputText("", key="-DOING_INPUT-", size=(30, 10)),
+        sg.Button("DONE", key="-DONE_TASK-", button_color=("black", "PaleTurquoise1")),
+    ],
+]
+
 col_done = [
     [
         sg.Button("REDO", key="-REDO_DONE-", button_color=("black", "PaleTurquoise1")),
         sg.Button("Delete", key="-DEL_DONE-", button_color=("black", "DarkSalmon")),
+        sg.Button("Clear", key="-CLEAR_DONE-", button_color=("black", "firebrick3")),
     ],
     [sg.Text("Done List", font=("Times New Roman", 15))],
     [sg.Listbox(values=done, size=(30, 10), key="-DONE-")],
@@ -43,16 +52,20 @@ layout = [
     [sg.Text("FIFO_TODO", font=("Times New Roman", 30))],
     [sg.Text("Handle tasks in order", font=("Times New Roman", 20))],
     [
-        sg.InputText("Enter Your Task", key="-TASK_INPUT-"),
+        sg.InputText("Enter Your Task", key="-TASK_INPUT-", size=(30, 10)),
         sg.Button(button_text="Add", key="-ADD-", button_color=("black", "OliveDrab2")),
     ],
-    [sg.Column(col_tasks), sg.Column(col_done)],
+    [
+        sg.Column(col_tasks),
+        sg.Column(col_doing, pad=((0, 0), (0, 160))),
+        sg.Column(col_done),
+    ],
 ]
 
 # window呼び出し
 window = sg.Window("FIFO_TODO", layout, resizable=True)
 
-
+index=None
 while True:  # Event Loop
     event, values = window.Read()  # Event -> key, values -> item
 
@@ -61,24 +74,39 @@ while True:  # Event Loop
             sg.popup_ok("Input Your Task")
         else:
             if values["-TASK_INPUT-"] not in tasks:  # 重複するタスクは登録しない
-                tasks.append(values["-TASK_INPUT-"])
+                if index != None:
+                    tasks.insert(index,values["-TASK_INPUT-"])
+                    index=None
+                else:
+                    tasks.append(values["-TASK_INPUT-"])
                 window.find_element("-TASKS-").Update(values=tasks)
                 window.find_element("-ADD-").Update("Add")
                 window.find_element("-TASK_INPUT-").Update(value="")
             else:
                 sg.popup_ok("Registered tasks")
 
-    elif event == "-DONE_TASK-":  # taskをdoneしたとき
+    elif event == "-SET_TASK-":
         if values["-TASKS-"] == []:  # 空の場合は追加しない
             sg.popup_ok("Not Selected")
-        else:  # 最初のタスクのみdoneが実行できる
-            if tasks.index(values["-TASKS-"][0]) == 0:
-                tasks.remove(values["-TASKS-"][0])
-                done.append(values["-TASKS-"][0])
-                window.find_element("-TASKS-").Update(values=tasks)
-                window.find_element("-DONE-").Update(values=done)
+        else:
+            if values["-DOING_INPUT-"] == "":
+                if tasks.index(values["-TASKS-"][0]) == 0:
+                    tasks.remove(values["-TASKS-"][0])
+                    window.find_element("-TASKS-").Update(values=tasks)
+                    window.find_element("-DOING_INPUT-").Update(value=values["-TASKS-"][0])
+                else:
+                    sg.popup_ok("Select the first task")
             else:
-                sg.popup_ok("Finish the first task")
+                sg.popup_ok("Finish the previous task")
+
+    elif event == "-DONE_TASK-":  # taskをdoneしたとき
+        if values["-DOING_INPUT-"] == "":  # 空の場合は追加しない
+            sg.popup_ok("Set Your Task")
+        else:
+            print(values["-DOING_INPUT-"])
+            done.append(values["-DOING_INPUT-"])
+            window.find_element("-DONE-").Update(values=done)
+            window.find_element("-DOING_INPUT-").Update(value="")
 
     elif event == "-DEL_TASK-":  # taskをdelしたとき
         if values["-TASKS-"] == []:  # 空の売位は追加しない
@@ -92,6 +120,7 @@ while True:  # Event Loop
             sg.popup_ok("Not Selected")
         else:
             edit_val = values["-TASKS-"][0]  # inputウインドウに値を表示してボタンをsaveに変更
+            index=tasks.index(edit_val)
             tasks.remove(values["-TASKS-"][0])
             window.find_element("-TASKS-").Update(values=tasks)
             window.find_element("-TASK_INPUT-").Update(value=edit_val)
@@ -103,6 +132,14 @@ while True:  # Event Loop
         else:
             done.remove(values["-DONE-"][0])
             window.find_element("-DONE-").Update(values=done)
+
+    elif event == "-CLEAR_DONE-":  # doneをdelしたとき
+        value_yes_or_no=sg.popup_yes_no("Clear Done Tasks")
+        if value_yes_or_no=="Yes":
+            done=[]
+            window.find_element("-DONE-").Update(values=done)
+        else:
+            pass
 
     elif event == "-REDO_DONE-":  # doneをredoしたとき
         if values["-DONE-"] == []:  # 空の場合は警告
