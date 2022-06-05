@@ -1,8 +1,9 @@
 # pysimplegui_fifo_todo
 
-PySimpleGUI で作成した FIFO 型の TODO リスト
+PySimpleGUI で作成したTODO リスト
 
-登録した順番でのタスクの処理のみ可能
+登録した順番でのタスクの処理のみ可能 (FIFO)
+
 
 重要度を無視して手の付けやすいタスクからしかやらない自分を戒めるために作成
 
